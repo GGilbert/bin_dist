@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binomial Distribution & Pascal's Triangle</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        .pascal-row {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 0.5rem;
+        }
+        .pascal-cell {
+            width: 2.5rem;
+            height: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 0.15rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .pascal-cell.inactive {
+            background-color: #1e293b;
+            color: #475569;
+        }
+        .pascal-cell.active {
+            background-color: #3b82f6;
+            color: #ffffff;
+            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.5);
+            transform: scale(1.1);
+            z-index: 10;
+        }
+        input[type=range] {
+            accent-color: #3b82f6;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8 flex flex-col items-center">
+
+    <div class="max-w-7xl w-full">
+        <!-- Header -->
+        <div class="mb-8 text-center md:text-left">
+            <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">Binomial Distribution & Pascal's Triangle</h1>
+            <p class="text-slate-400 max-w-3xl">
+                Adjust the number of trials (n) and the probability of success (p). Notice how the highlighted row in Pascal's Triangle corresponds to the binomial coefficients that form the shape of the probability histogram.
+            </p>
+        </div>
+
+        <div class="flex flex-col gap-8 w-full">
+            
+            <!-- Controls & Stats -->
+            <div class="bg-slate-800 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row gap-8 items-start">
+                <div class="flex-1 w-full">
+                    <h2 class="text-xl font-semibold mb-4 border-b border-slate-700 pb-2">Parameters</h2>
+                    
+                    <!-- Slider: Number of Trials (n) -->
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-2">
+                            <label for="trialsN" class="font-medium text-slate-300">Number of Trials (n) <span class="text-xs text-slate-500 ml-2">(Max 10)</span></label>
+                            <span id="valN" class="bg-blue-500 text-white px-2 py-1 rounded text-sm font-bold">6</span>
+                        </div>
+                        <input type="range" id="trialsN" min="1" max="10" step="1" value="6" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+                    </div>
+
+                    <!-- Slider: Probability (p) -->
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-2">
+                            <label for="probP" class="font-medium text-slate-300">Probability of Success (p)</label>
+                            <span id="valP" class="bg-blue-500 text-white px-2 py-1 rounded text-sm font-bold">0.50</span>
+                        </div>
+                        <input type="range" id="probP" min="0" max="1" step="0.01" value="0.5" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                </div>
+
+                <!-- Educational Note -->
+                <div class="flex-1 w-full bg-slate-700/50 rounded-xl p-4 md:mt-11">
+                    <h3 class="font-semibold text-blue-400 mb-2">The Connection</h3>
+                    <p class="text-sm text-slate-300">
+                        The binomial probability formula is: <br>
+                        <code class="text-blue-300 block mt-1 bg-slate-900 p-2 rounded">P(X=k) = C(n,k) · p^k · (1-p)^(n-k)</code>
+                    </p>
+                    <p class="text-sm text-slate-300 mt-2">
+                        The coefficient <strong>C(n,k)</strong> is exactly the number found in the <strong>n-th row</strong> and <strong>k-th position</strong> of Pascal's Triangle. It represents the number of unique combinations to get 'k' successes.
+                    </p>
+                    
+                    <!-- Special Case for p=0.5 -->
+                    <div id="p50-equation" class="mt-4 p-3 bg-slate-800 rounded-lg border border-slate-600 transition-all duration-300">
+                        <h4 class="text-sm font-semibold text-emerald-400 mb-1 flex items-center gap-2">
+                            <span>Special Case: Fair Coin (p = 0.5)</span>
+                            <span id="p50-badge" class="hidden bg-emerald-500/20 text-emerald-300 text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider">Active</span>
+                        </h4>
+                        <p class="text-xs text-slate-400 mb-2">
+                            When the probability is exactly 50%, the equation beautifully simplifies since p<sup>k</sup> · (1-p)<sup>n-k</sup> simply becomes (0.5)<sup>n</sup>, or 1/2<sup>n</sup>.
+                        </p>
+                        <code class="text-emerald-300 block bg-slate-900 p-2 rounded text-center text-sm font-mono shadow-inner border border-slate-800">P(X=k) = C(n,k) / 2ⁿ</code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Visualization: Histogram -->
+                <div class="bg-slate-800 rounded-2xl p-6 shadow-xl flex flex-col">
+                    <h2 class="text-xl font-semibold mb-4 border-b border-slate-700 pb-2">Probability Histogram</h2>
+                    <div class="relative w-full flex-grow" style="min-height: 300px;">
+                        <canvas id="binomialChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Visualization: Combinations Grid -->
+                <div class="bg-slate-800 rounded-2xl p-6 shadow-xl flex flex-col">
+                    <div class="flex justify-between items-center border-b border-slate-700 mb-4 pb-2">
+                        <h2 class="text-xl font-semibold">Combinations Grid</h2>
+                        <div class="flex gap-3 text-xs text-slate-400">
+                            <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-green-500"></div> Success</span>
+                            <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-red-500"></div> Failure</span>
+                        </div>
+                    </div>
+                    <div class="relative w-full flex-grow overflow-x-auto overflow-y-auto" style="min-height: 300px; max-height: 400px;">
+                        <div id="combinationsContainer" class="flex justify-between min-w-max gap-6 px-2">
+                            <!-- Combinations grid injected via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visualization: Pascal's Triangle -->
+            <div class="bg-slate-800 rounded-2xl p-6 shadow-xl overflow-x-auto">
+                <h2 class="text-xl font-semibold mb-4 border-b border-slate-700 pb-2">Pascal's Triangle (Rows 0 to 10)</h2>
+                <div id="pascalContainer" class="min-w-max py-4">
+                    <!-- Triangle rows injected via JS -->
+                </div>
+            </div>
+
+            <!-- Quick Facts Section -->
+            <div class="bg-slate-800 rounded-2xl p-6 shadow-xl mt-4">
+                <h2 class="text-xl font-semibold mb-6 border-b border-slate-700 pb-2 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Quick Facts & History
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-slate-300">
+                    <div class="bg-slate-700/30 p-4 rounded-xl border border-slate-700">
+                        <h3 class="font-bold text-white mb-2 text-base">Horizontal Sums (2ⁿ)</h3>
+                        <p>If you add up all the numbers in any given row <span class="italic text-slate-400">n</span>, the sum is exactly <strong>2ⁿ</strong>. For instance, row 3 (1, 3, 3, 1) sums to 8, which is 2³.</p>
+                    </div>
+                    <div class="bg-slate-700/30 p-4 rounded-xl border border-slate-700">
+                        <h3 class="font-bold text-white mb-2 text-base">Fibonacci Sequence</h3>
+                        <p>By summing the numbers on the "shallow diagonals" of the triangle, you generate the famous Fibonacci sequence: 1, 1, 2, 3, 5, 8, 13...</p>
+                    </div>
+                    <div class="bg-slate-700/30 p-4 rounded-xl border border-slate-700">
+                        <h3 class="font-bold text-white mb-2 text-base">Sierpiński Fractal</h3>
+                        <p>If you color all the odd numbers black and the even numbers white, the triangle perfectly maps to a fractal known as the Sierpiński triangle.</p>
+                    </div>
+                    <div class="bg-slate-700/30 p-4 rounded-xl border border-slate-700">
+                        <h3 class="font-bold text-white mb-2 text-base">Global Origins</h3>
+                        <p>Long before Pascal, this pattern was studied worldwide. It is known as <strong>Yang Hui's Triangle</strong> in China, the <strong>Khayyam Triangle</strong> in Persia, and the <strong>Staircase of Mount Meru</strong> in India (stemming from Pingala's work around 200 BC).</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- Math Functions ---
+        
+        // Calculate combinations C(n, k)
+        function combinations(n, k) {
+            if (k === 0 || k === n) return 1;
+            let result = 1;
+            for (let i = 1; i <= k; i++) {
+                result = (result * (n - i + 1)) / i;
+            }
+            return Math.round(result);
+        }
+
+        // Calculate Binomial Probability
+        function binomialProb(n, k, p) {
+            const c = combinations(n, k);
+            return c * Math.pow(p, k) * Math.pow(1 - p, n - k);
+        }
+
+        // --- Combinations Generator ---
+        function getPermutations(n, k) {
+            const results = [];
+            function backtrack(currentPath, successesLeft, failuresLeft) {
+                if (successesLeft === 0 && failuresLeft === 0) {
+                    results.push([...currentPath]);
+                    return;
+                }
+                if (successesLeft > 0) {
+                    currentPath.push(true); // true = success
+                    backtrack(currentPath, successesLeft - 1, failuresLeft);
+                    currentPath.pop();
+                }
+                if (failuresLeft > 0) {
+                    currentPath.push(false); // false = failure
+                    backtrack(currentPath, successesLeft, failuresLeft - 1);
+                    currentPath.pop();
+                }
+            }
+            backtrack([], k, n - k);
+            return results;
+        }
+
+        function renderCombinationsGrid() {
+            const container = document.getElementById('combinationsContainer');
+            container.innerHTML = '';
+            
+            for (let k = 0; k <= currentN; k++) {
+                const perms = getPermutations(currentN, k);
+                
+                // Column container
+                const colDiv = document.createElement('div');
+                colDiv.className = 'flex flex-col items-center gap-1.5';
+                
+                // Header (k label)
+                const header = document.createElement('div');
+                header.className = 'text-xs text-slate-400 font-semibold mb-2 text-center';
+                header.innerHTML = `k=${k}<br><span class="text-[10px] text-slate-500">(${perms.length})</span>`;
+                colDiv.appendChild(header);
+
+                // Permutations
+                perms.forEach(perm => {
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = 'flex gap-0.5';
+                    perm.forEach(isSuccess => {
+                        const dotSize = currentN > 7 ? 'w-1.5 h-1.5' : 'w-2 h-2';
+                        const dot = document.createElement('div');
+                        dot.className = `${dotSize} rounded-full ${isSuccess ? 'bg-green-500' : 'bg-red-500'}`;
+                        rowDiv.appendChild(dot);
+                    });
+                    colDiv.appendChild(rowDiv);
+                });
+
+                container.appendChild(colDiv);
+            }
+        }
+
+        // --- Global State ---
+        let currentN = 6;
+        let currentP = 0.5;
+        const maxRows = 10;
+        let chartInstance = null;
+        let lastRenderedN = -1; // Track N to avoid unnecessary grid re-renders
+
+        // --- DOM Elements ---
+        const sliderN = document.getElementById('trialsN');
+        const sliderP = document.getElementById('probP');
+        const valN = document.getElementById('valN');
+        const valP = document.getElementById('valP');
+        const pascalContainer = document.getElementById('pascalContainer');
+
+        // --- Setup Functions ---
+
+        // Render the entire Pascal's triangle structurally
+        function initPascalTriangle() {
+            pascalContainer.innerHTML = '';
+            for (let r = 0; r <= maxRows; r++) {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'pascal-row';
+                rowDiv.id = `pascal-row-${r}`;
+                
+                // Add a small row label
+                const label = document.createElement('div');
+                label.className = 'flex items-center justify-end pr-2 text-xs text-slate-500 w-12';
+                label.innerText = `n=${r}`;
+                rowDiv.appendChild(label);
+
+                for (let k = 0; k <= r; k++) {
+                    const val = combinations(r, k);
+                    const cell = document.createElement('div');
+                    cell.className = 'pascal-cell inactive';
+                    cell.innerText = val;
+                    rowDiv.appendChild(cell);
+                }
+                pascalContainer.appendChild(rowDiv);
+            }
+        }
+
+        // Update the visual state of Pascal's triangle
+        function updatePascalHighlight() {
+            for (let r = 0; r <= maxRows; r++) {
+                const rowDiv = document.getElementById(`pascal-row-${r}`);
+                if (!rowDiv) continue;
+                
+                // The first child is the label, so skip it when iterating cells
+                const cells = rowDiv.querySelectorAll('.pascal-cell');
+                
+                if (r === currentN) {
+                    cells.forEach(cell => {
+                        cell.classList.remove('inactive');
+                        cell.classList.add('active');
+                    });
+                } else {
+                    cells.forEach(cell => {
+                        cell.classList.remove('active');
+                        cell.classList.add('inactive');
+                    });
+                }
+            }
+        }
+
+        // Initialize Chart.js
+        function initChart() {
+            const ctx = document.getElementById('binomialChart').getContext('2d');
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Probability P(X=k)',
+                        data: [],
+                        backgroundColor: '#3b82f6', // matches active row
+                        borderRadius: 4,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Probability: ${context.parsed.y.toFixed(4)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Number of Successes (k)', color: '#94a3b8' },
+                            ticks: { color: '#cbd5e1' },
+                            grid: { color: '#334155' }
+                        },
+                        y: {
+                            title: { display: true, text: 'Probability', color: '#94a3b8' },
+                            ticks: { color: '#cbd5e1' },
+                            grid: { color: '#334155' },
+                            beginAtZero: true,
+                            suggestedMax: 0.5
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update Chart Data
+        function updateChart() {
+            const labels = [];
+            const data = [];
+            
+            for (let k = 0; k <= currentN; k++) {
+                labels.push(k);
+                data.push(binomialProb(currentN, k, currentP));
+            }
+
+            chartInstance.data.labels = labels;
+            chartInstance.data.datasets[0].data = data;
+            
+            // Adjust y-axis scale dynamically slightly to look good
+            const maxProb = Math.max(...data);
+            chartInstance.options.scales.y.suggestedMax = Math.min(1, maxProb * 1.2);
+            
+            chartInstance.update();
+        }
+
+        // Main update function
+        function handleUpdate() {
+            currentN = parseInt(sliderN.value);
+            currentP = parseFloat(sliderP.value);
+            
+            valN.innerText = currentN;
+            valP.innerText = currentP.toFixed(2);
+            
+            // Highlight p=0.5 special case
+            const p50Box = document.getElementById('p50-equation');
+            const p50Badge = document.getElementById('p50-badge');
+            
+            if (currentP === 0.5) {
+                p50Box.classList.add('border-emerald-500', 'bg-emerald-900/20');
+                p50Box.classList.remove('opacity-60', 'border-slate-600', 'bg-slate-800');
+                p50Badge.classList.remove('hidden');
+                p50Badge.classList.add('inline-block');
+            } else {
+                p50Box.classList.remove('border-emerald-500', 'bg-emerald-900/20');
+                p50Box.classList.add('opacity-60', 'border-slate-600', 'bg-slate-800');
+                p50Badge.classList.add('hidden');
+                p50Badge.classList.remove('inline-block');
+            }
+
+            updatePascalHighlight();
+            updateChart();
+            
+            if (currentN !== lastRenderedN) {
+                renderCombinationsGrid();
+                lastRenderedN = currentN;
+            }
+        }
+
+        // --- Event Listeners ---
+        sliderN.addEventListener('input', handleUpdate);
+        sliderP.addEventListener('input', handleUpdate);
+
+        // --- Initialization ---
+        window.onload = () => {
+            initPascalTriangle();
+            initChart();
+            handleUpdate();
+        };
+
+    </script>
+</body>
+</html>
